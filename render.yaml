@@ -26,6 +26,14 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
+      # Pin the Python version explicitly. Without this, Render uses its own
+      # default runtime (3.14.x as of 2026), which is too new for
+      # pydantic-core to have a prebuilt wheel - pip then tries to build it
+      # from source and fails with "metadata-generation-failed" (no Rust
+      # toolchain in the build image). 3.13 matches local dev and has
+      # confirmed working wheels for every pinned dependency below.
+      - key: PYTHON_VERSION
+        value: 3.13.15
       - key: DATABASE_URL
         fromDatabase:
           name: storylens-db

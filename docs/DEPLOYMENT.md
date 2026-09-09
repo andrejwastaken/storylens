@@ -85,3 +85,15 @@ Both Render and Netlify support adding a custom domain from their
 dashboards (Render: service -> Settings -> Custom Domains; Netlify: Site
 configuration -> Domain management). Update `CORS_ORIGINS` and
 `VITE_API_URL` again if you add one.
+
+## Troubleshooting
+
+- **`pip` fails with `metadata-generation-failed` on `pydantic-core`** during
+  the Render build: this means Render picked a Python version too new for
+  `pydantic-core` to have a prebuilt wheel (it's a Rust extension, and the
+  build image has no Rust toolchain to compile it from source). Render's
+  default runtime jumped to Python 3.14 in Feb 2026, which is too new for
+  our pinned dependencies. `render.yaml` already sets `PYTHON_VERSION=3.13.15`
+  for exactly this reason - if you set the service up manually instead of via
+  the blueprint, add that env var (or rely on the `.python-version` file
+  already present in `backend/`) yourself.
