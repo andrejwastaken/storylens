@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { StoryProfile } from './types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export async function analyzeArticle(
   url: string,
@@ -13,4 +13,8 @@ export async function analyzeArticle(
     { timeout: 180_000 },
   )
   return data
+}
+
+export function audioSummaryUrl(analysisId: number): string {
+  return `${API_BASE_URL}/analyze/${analysisId}/audio-summary`
 }

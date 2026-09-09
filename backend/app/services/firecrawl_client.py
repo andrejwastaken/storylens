@@ -69,6 +69,7 @@ def scrape_article(url: str) -> dict:
         or _first(metadata.get("date"))
     )
     site_name = _first(metadata.get("og:site_name")) or _first(metadata.get("ogSiteName"))
+    image_url = _first(metadata.get("og:image")) or _first(metadata.get("ogImage"))
 
     return {
         "url": _first(metadata.get("sourceURL")) or url,
@@ -77,4 +78,5 @@ def scrape_article(url: str) -> dict:
         "published_at": published_at,
         "markdown": data.get("markdown") or "",
         "site_name": site_name,
+        "image_url": image_url,
     }

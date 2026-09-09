@@ -1,0 +1,46 @@
+# Render Blueprint - deploys the StoryLens FastAPI backend + a managed
+# Postgres database. Push this file to your repo, then in the Render
+# dashboard: New -> Blueprint -> select this repo.
+#
+# After the blueprint applies, set the secret env vars below (OPENAI_API_KEY,
+# FIRECRAWL_API_KEY, EXA_API_KEY) in the Render dashboard - they are
+# intentionally left blank here (`sync: false`) so they are never committed.
+#
+# Note: plan names on Render can change over time - if a `plan` value below
+# isn't valid for your account, just pick the equivalent (e.g. free/starter)
+# in the Render dashboard when the blueprint prompts you.
+
+databases:
+  - name: storylens-db
+    plan: free
+    databaseName: storylens
+    user: storylens
+
+services:
+  - type: web
+    name: storylens-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: storylens-db
+          property: connectionString
+      - key: LLM_PROVIDER
+        value: openai
+      - key: OPENAI_MODEL
+        value: gpt-5.6
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FIRECRAWL_API_KEY
+        sync: false
+      - key: EXA_API_KEY
+        sync: false
+      - key: MAX_RELATED_SOURCES
+        value: "5"
+      - key: CORS_ORIGINS
+        value: https://your-storylens-site.netlify.app

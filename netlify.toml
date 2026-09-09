@@ -1,0 +1,19 @@
+# Netlify build config for the StoryLens frontend (monorepo: frontend/ subdir).
+# In the Netlify UI: New site from Git -> select this repo -> it will read
+# this file automatically. Set VITE_API_URL as an environment variable in
+# the Netlify dashboard (Site settings -> Environment variables) pointing at
+# your deployed Render backend, e.g. https://storylens-api.onrender.com
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Single-page app - all routes serve index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

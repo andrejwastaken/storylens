@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { DEFAULT_WEIGHTS, recomputeTrustScore } from '../scoring'
 import type { StoryProfile as StoryProfileType, Weights } from '../types'
+import AiImageSignal from './AiImageSignal'
 import ArticleHeader from './ArticleHeader'
+import AudioSummary from './AudioSummary'
 import ClaimsList from './ClaimsList'
 import OutletFraming from './OutletFraming'
 import RelatedSources from './RelatedSources'
@@ -27,22 +29,22 @@ export default function StoryProfile({ profile }: { profile: StoryProfileType })
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6">
-        <ArticleHeader article={profile.article} bias={profile.bias} />
+      <section className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-6">
+        <ArticleHeader article={profile.article} bias={profile.bias} cached={profile.cached} />
       </section>
 
-      <section className="grid gap-8 rounded-2xl border border-slate-800 bg-slate-900/30 p-6 lg:grid-cols-[220px_1fr]">
+      <section className="grid gap-8 rounded-xl border border-neutral-800 bg-neutral-950/60 p-6 lg:grid-cols-[220px_1fr]">
         <div className="flex flex-col items-center justify-center">
           <TrustScoreGauge score={liveTrustScore} />
         </div>
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Score breakdown</h2>
+            <h2 className="text-sm font-medium uppercase tracking-wide text-neutral-400">Score breakdown</h2>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setEditingWeights((v) => !v)}
-                className="rounded-lg border border-slate-700 px-3 py-1 text-xs font-medium text-slate-300 transition hover:border-violet-500 hover:text-violet-300"
+                className="rounded-md border border-neutral-700 px-3 py-1 text-xs font-medium text-neutral-300 transition hover:border-blue-500 hover:text-blue-400"
               >
                 {editingWeights ? 'Done adjusting' : 'Adjust weights'}
               </button>
@@ -50,7 +52,7 @@ export default function StoryProfile({ profile }: { profile: StoryProfileType })
                 <button
                   type="button"
                   onClick={() => setWeights(DEFAULT_WEIGHTS)}
-                  className="rounded-lg border border-slate-700 px-3 py-1 text-xs font-medium text-slate-400 transition hover:border-slate-500"
+                  className="rounded-md border border-neutral-700 px-3 py-1 text-xs font-medium text-neutral-500 transition hover:border-neutral-500"
                 >
                   Reset
                 </button>
@@ -61,29 +63,38 @@ export default function StoryProfile({ profile }: { profile: StoryProfileType })
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Summary</h2>
-        <p className="text-slate-300">{profile.summary}</p>
+      <section className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-6">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-neutral-400">Summary</h2>
+          <AudioSummary analysisId={profile.analysis_id} available={profile.audio_summary_available} />
+        </div>
+        <p className="text-neutral-300">{profile.summary}</p>
       </section>
+
+      {profile.ai_image_signal && (
+        <section>
+          <AiImageSignal signal={profile.ai_image_signal} />
+        </section>
+      )}
 
       <section>
         <ReasonsWarnings reasons={profile.reasons} warnings={profile.warnings} />
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+      <section className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-6">
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-neutral-400">
           Key claims &amp; evidence ({profile.claims.length})
         </h2>
         <ClaimsList claims={profile.claims} />
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">How other outlets frame this story</h2>
+      <section className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-6">
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-neutral-400">How other outlets frame this story</h2>
         <OutletFraming framing={profile.framing} />
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">Related sources</h2>
+      <section className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-6">
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-neutral-400">Related sources</h2>
         <RelatedSources sources={profile.related_sources} independentCount={profile.independent_source_count} />
       </section>
     </div>

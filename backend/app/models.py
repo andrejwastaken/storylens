@@ -60,6 +60,12 @@ class Claim(Base):
     text: Mapped[str] = mapped_column(Text)
     # 0-100, how central this claim is to the story.
     importance: Mapped[float] = mapped_column(Float, default=50.0)
+    # Overall verdict summary (denormalized from Evidence rows, for cheap
+    # reconstruction/caching of a Story Profile without re-running the LLM).
+    # One of: supported | contradicted | partially_supported | unverified
+    verdict: Mapped[str] = mapped_column(String(32), default="unverified")
+    confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    explanation: Mapped[str] = mapped_column(Text, default="")
 
     story: Mapped[Story] = relationship(back_populates="claims")
     evidence: Mapped[list["Evidence"]] = relationship(back_populates="claim")
@@ -95,13 +101,18 @@ class Analysis(Base):
 
     bias_label: Mapped[str] = mapped_column(String(32), default="unknown")
     bias_confidence: Mapped[float] = mapped_column(Float, default=0.0)
-    ai_probability: Mapped[float | None] = mapped_column(Float, nullable=True)  # P2, may be null
+    bias_explanation: Mapped[str] = mapped_column(Text, default="")
+    # P2: soft heuristic signal (0-100), null when unavailable/not configured.
+    ai_probability: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ai_image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    ai_image_reasoning: Mapped[str] = mapped_column(Text, default="")
 
     weights_json: Mapped[dict] = mapped_column(JSON, default=dict)
     summary: Mapped[str] = mapped_column(Text, default="")
     warnings_json: Mapped[list] = mapped_column(JSON, default=list)
     reasons_json: Mapped[list] = mapped_column(JSON, default=list)
     framing_json: Mapped[list] = mapped_column(JSON, default=list)
+    independent_source_count: Mapped[int] = mapped_column(Integer, default=0)
 
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 

@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
 from app.config import get_settings
 from app.database import get_db
-from app.scoring import ScoringInput, compute_trust_score, get_domain
+from app.scoring import ScoringInput, combine_weighted_score, compute_trust_score, get_domain, normalize_weights
 from app.seed_sources import lookup as lookup_source
+from app.services import elevenlabs_client, fal_client
 from app.services.exa_client import ExaError, search_related_coverage
 from app.services.firecrawl_client import FirecrawlError, scrape_article
 from app.services.llm import get_llm_provider
@@ -19,6 +23,145 @@ from app.services.llm import get_llm_provider
 logger = logging.getLogger("storylens.analyze")
 settings = get_settings()
 router = APIRouter()
+
+CACHE_TTL = dt.timedelta(hours=6)
+
+AUDIO_CACHE_DIR = Path(__file__).resolve().parent.parent.parent / ".audio_cache"
+
+
+def _ai_image_signal_from_analysis(db_analysis: models.Analysis) -> schemas.AiImageSignalOut | None:
+    if db_analysis.ai_image_url is None or db_analysis.ai_probability is None:
+        return None
+    return schemas.AiImageSignalOut(
+        image_url=db_analysis.ai_image_url,
+        likelihood=db_analysis.ai_probability,
+        reasoning=db_analysis.ai_image_reasoning,
+    )
+
+
+def _cached_profile(db: Session, url: str, weights: dict[str, float] | None) -> schemas.StoryProfileResponse | None:
+    """P2: if we already analyzed this exact URL recently, skip Firecrawl/Exa/
+    LLM entirely and reconstruct the Story Profile from Postgres. Saves API
+    cost/time on repeat demo runs of the same article."""
+    article = (
+        db.query(models.Article)
+        .filter(models.Article.url == url, models.Article.is_primary.is_(True))
+        .order_by(models.Article.created_at.desc())
+        .first()
+    )
+    if not article:
+        return None
+
+    db_analysis = (
+        db.query(models.Analysis)
+        .filter(models.Analysis.article_id == article.id)
+        .order_by(models.Analysis.created_at.desc())
+        .first()
+    )
+    if not db_analysis or (dt.datetime.utcnow() - db_analysis.created_at) > CACHE_TTL:
+        return None
+
+    story_link = db.query(models.StoryArticle).filter(models.StoryArticle.article_id == article.id).first()
+    if not story_link:
+        return None
+
+    claim_rows = db.query(models.Claim).filter(models.Claim.story_id == story_link.story_id).all()
+    claims_out = [
+        schemas.ClaimOut(
+            id=str(row.id),
+            text=row.text,
+            importance=row.importance,
+            verdict=row.verdict,
+            confidence=row.confidence,
+            supporting_urls=[
+                e.article.url for e in row.evidence if e.relationship_type == "supported"
+            ],
+            contradicting_urls=[
+                e.article.url for e in row.evidence if e.relationship_type == "contradicted"
+            ],
+            explanation=row.explanation,
+        )
+        for row in claim_rows
+    ]
+
+    related_links = (
+        db.query(models.StoryArticle)
+        .filter(models.StoryArticle.story_id == story_link.story_id, models.StoryArticle.article_id != article.id)
+        .all()
+    )
+    related_sources_out = []
+    for link in related_links:
+        ra = db.get(models.Article, link.article_id)
+        if not ra:
+            continue
+        rsource = db.get(models.Source, ra.source_id)
+        related_sources_out.append(
+            schemas.RelatedSourceOut(
+                url=ra.url,
+                title=ra.title,
+                domain=rsource.domain if rsource else get_domain(ra.url),
+                outlet_name=rsource.name if rsource else get_domain(ra.url),
+                reliability_score=rsource.reliability_score if rsource else 50.0,
+            )
+        )
+
+    source = db.get(models.Source, article.source_id)
+    anti_sensationalism_score = 100.0 - db_analysis.sensationalism_score
+    trust_score = (
+        combine_weighted_score(
+            db_analysis.source_score,
+            db_analysis.corroboration_score,
+            db_analysis.evidence_score,
+            db_analysis.consistency_score,
+            anti_sensationalism_score,
+            weights,
+        )
+        if weights
+        else db_analysis.trust_score
+    )
+    weights_used = db_analysis.weights_json if not weights else normalize_weights(weights)
+
+    return schemas.StoryProfileResponse(
+        analysis_id=db_analysis.id,
+        article=schemas.ArticleInfo(
+            url=article.url,
+            title=article.title,
+            author=article.author,
+            published_at=article.published_at.isoformat() if article.published_at else None,
+            domain=source.domain if source else get_domain(article.url),
+            source_name=source.name if source else get_domain(article.url),
+        ),
+        summary=db_analysis.summary,
+        trust_score=trust_score,
+        scores=schemas.ScoreBreakdown(
+            source=db_analysis.source_score,
+            corroboration=db_analysis.corroboration_score,
+            evidence=db_analysis.evidence_score,
+            consistency=db_analysis.consistency_score,
+            sensationalism=db_analysis.sensationalism_score,
+            anti_sensationalism=anti_sensationalism_score,
+        ),
+        weights_used=weights_used,
+        bias=schemas.BiasOut(
+            label=db_analysis.bias_label,
+            confidence=db_analysis.bias_confidence,
+            explanation=db_analysis.bias_explanation,
+        ),
+        reasons=db_analysis.reasons_json,
+        warnings=db_analysis.warnings_json,
+        claims=claims_out,
+        related_sources=related_sources_out,
+        framing=[
+            schemas.OutletFramingOut(
+                url=f["url"], outlet_name=f["outlet_name"], domain=f["domain"], framing_summary=f["framing_summary"], tone=f["tone"]
+            )
+            for f in db_analysis.framing_json
+        ],
+        independent_source_count=db_analysis.independent_source_count,
+        cached=True,
+        ai_image_signal=_ai_image_signal_from_analysis(db_analysis),
+        audio_summary_available=elevenlabs_client.is_configured(),
+    )
 
 
 def _parse_published_at(value: str | None) -> dt.datetime | None:
@@ -86,6 +229,10 @@ def _fetch_related_articles(primary_domain: str, search_queries: list[str]) -> l
 
 @router.post("/analyze", response_model=schemas.StoryProfileResponse)
 def analyze(req: schemas.AnalyzeRequest, db: Session = Depends(get_db)) -> schemas.StoryProfileResponse:
+    cached = _cached_profile(db, req.url, req.weights)
+    if cached:
+        return cached
+
     llm = get_llm_provider()
 
     # 1. Extract the primary article.
@@ -115,6 +262,18 @@ def analyze(req: schemas.AnalyzeRequest, db: Session = Depends(get_db)) -> schem
 
     # 2. LLM pass 1: claims + language signals.
     analysis = llm.analyze_article(article.title, article.url, primary["markdown"])
+
+    # 2b. P2 (optional, best-effort): soft AI-generated-image heuristic on the
+    # article's lead image, via fal.ai. Never blocks/fails the main analysis.
+    ai_image_signal: schemas.AiImageSignalOut | None = None
+    if primary.get("image_url") and fal_client.is_configured():
+        result = fal_client.assess_ai_image_likelihood(primary["image_url"])
+        if result:
+            ai_image_signal = schemas.AiImageSignalOut(
+                image_url=primary["image_url"],
+                likelihood=result["ai_likelihood"],
+                reasoning=result["reasoning"],
+            )
 
     story = models.Story(canonical_title=analysis.summary[:200] or article.title)
     db.add(story)
@@ -176,6 +335,12 @@ def analyze(req: schemas.AnalyzeRequest, db: Session = Depends(get_db)) -> schem
         v = verdicts_by_claim.get(c.id)
         if not v:
             continue
+        # Denormalize the overall verdict onto the Claim row itself, so a
+        # cached Story Profile can be reconstructed without re-deriving it
+        # (lossily) from individual Evidence rows.
+        row.verdict = v.verdict
+        row.confidence = v.confidence
+        row.explanation = v.explanation
         for url in v.supporting_urls:
             if url in url_to_article_id:
                 db.add(
@@ -231,12 +396,16 @@ def analyze(req: schemas.AnalyzeRequest, db: Session = Depends(get_db)) -> schem
         sensationalism_score=scoring_result.sensationalism_score,
         bias_label=analysis.bias.label,
         bias_confidence=analysis.bias.confidence,
-        ai_probability=None,
+        bias_explanation=analysis.bias.explanation,
+        ai_probability=ai_image_signal.likelihood if ai_image_signal else None,
+        ai_image_url=ai_image_signal.image_url if ai_image_signal else None,
+        ai_image_reasoning=ai_image_signal.reasoning if ai_image_signal else "",
         weights_json=scoring_result.weights_used,
         summary=analysis.summary,
         warnings_json=scoring_result.warnings,
         reasons_json=scoring_result.reasons,
         framing_json=framing_payload,
+        independent_source_count=scoring_result.independent_source_count,
     )
     db.add(db_analysis)
     db.commit()
@@ -305,4 +474,42 @@ def analyze(req: schemas.AnalyzeRequest, db: Session = Depends(get_db)) -> schem
         related_sources=related_sources_out,
         framing=framing_out,
         independent_source_count=scoring_result.independent_source_count,
+        cached=False,
+        ai_image_signal=ai_image_signal,
+        audio_summary_available=elevenlabs_client.is_configured(),
     )
+
+
+@router.get("/analyze/{analysis_id}/audio-summary")
+def audio_summary(analysis_id: int, db: Session = Depends(get_db)) -> Response:
+    """P2: ~30s spoken summary of a Story Profile via ElevenLabs TTS.
+
+    Generated on first request, then cached to disk keyed by analysis id +
+    a hash of the summary text, so repeat plays (and re-demoing the same
+    article) don't re-spend ElevenLabs credits.
+    """
+    if not elevenlabs_client.is_configured():
+        raise HTTPException(status_code=503, detail="Audio summaries are not configured (missing ELEVENLABS_API_KEY).")
+
+    db_analysis = db.get(models.Analysis, analysis_id)
+    if not db_analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found.")
+
+    text = db_analysis.summary.strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="This analysis has no summary to narrate.")
+
+    AUDIO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_key = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+    cache_path = AUDIO_CACHE_DIR / f"{analysis_id}-{cache_key}.mp3"
+
+    if cache_path.exists():
+        return Response(content=cache_path.read_bytes(), media_type="audio/mpeg")
+
+    try:
+        audio_bytes = elevenlabs_client.synthesize_speech(text)
+    except elevenlabs_client.ElevenLabsError as exc:
+        raise HTTPException(status_code=502, detail=f"Could not generate audio summary: {exc}") from exc
+
+    cache_path.write_bytes(audio_bytes)
+    return Response(content=audio_bytes, media_type="audio/mpeg")

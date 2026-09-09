@@ -47,6 +47,29 @@ def normalize_weights(weights: dict[str, float] | None) -> dict[str, float]:
     return {k: v / total for k, v in merged.items()}
 
 
+def combine_weighted_score(
+    source_score: float,
+    corroboration_score: float,
+    evidence_score: float,
+    consistency_score: float,
+    anti_sensationalism_score: float,
+    weights: dict[str, float] | None = None,
+) -> float:
+    """Recombine already-computed sub-scores with a (possibly custom) set of
+    weights. Used to cheaply recompute the Trust Score for cached analyses
+    when the caller passes different weights, without re-running the LLM.
+    """
+    w = normalize_weights(weights)
+    score = (
+        w["source"] * source_score
+        + w["corroboration"] * corroboration_score
+        + w["evidence"] * evidence_score
+        + w["consistency"] * consistency_score
+        + w["anti_sensationalism"] * anti_sensationalism_score
+    )
+    return round(score, 1)
+
+
 def cluster_independent_sources(
     related_articles: list[dict], primary_domain: str
 ) -> list[list[dict]]:

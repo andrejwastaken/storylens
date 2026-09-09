@@ -20,26 +20,26 @@ export default function LoadingSteps() {
   }, [])
 
   return (
-    <div className="flex flex-col items-center gap-6 rounded-2xl border border-slate-800 bg-slate-900/40 px-8 py-14 text-center">
-      <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-700 border-t-violet-500" />
+    <div className="flex flex-col items-center gap-6 rounded-xl border border-neutral-800 bg-neutral-950 px-8 py-14 text-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-700 border-t-blue-500" />
       <div className="space-y-2">
         {STEPS.map((label, i) => (
           <p
             key={label}
             className={
               i === step
-                ? 'font-medium text-slate-100 transition'
+                ? 'font-medium text-white transition'
                 : i < step
-                  ? 'text-sm text-emerald-500/80 transition'
-                  : 'text-sm text-slate-600 transition'
+                  ? 'flex items-center justify-center gap-2 text-sm text-blue-400/70 transition'
+                  : 'text-sm text-neutral-600 transition'
             }
           >
-            {i < step ? '✓ ' : ''}
+            {i < step && <span className="inline-block h-1 w-1 rounded-full bg-blue-400" />}
             {label}
           </p>
         ))}
       </div>
-      <p className="text-xs text-slate-500">This can take up to a minute - we're reading multiple full articles.</p>
+      <p className="text-xs text-neutral-500">This can take up to a minute - we're reading multiple full articles.</p>
     </div>
   )
 }

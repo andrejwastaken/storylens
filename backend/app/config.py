@@ -31,12 +31,36 @@ class Settings(BaseSettings):
     # How many related sources to fetch full text for and compare against
     max_related_sources: int = 5
 
+    # ElevenLabs (P2: spoken audio summary) - https://elevenlabs.io -> Profile -> API Keys
+    elevenlabs_api_key: str = ""
+    elevenlabs_voice_id: str = "JBFqnCBsd6RMkjVDRZzb"  # premade "George" voice, available on free tier
+    elevenlabs_model_id: str = "eleven_turbo_v2_5"
+
+    # fal.ai (P2: soft AI-generated-image heuristic on the article's lead image)
+    # fal.ai has no dedicated authenticity-classifier model, so this uses a
+    # hosted vision-language model (fal-ai/any-llm/vision) with a targeted
+    # prompt. It is a soft heuristic signal, never a certainty claim.
+    # https://fal.ai -> Dashboard -> Keys
+    fal_api_key: str = ""
+    fal_vision_model: str = "google/gemini-flash-1.5"
+
     # CORS
     cors_origins: str = "http://localhost:5173"
 
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        """Normalize managed-Postgres URLs (Render, etc. give plain
+        postgres:// or postgresql://) to use the psycopg3 driver."""
+        url = self.database_url
+        if url.startswith("postgres://"):
+            url = "postgresql+psycopg://" + url[len("postgres://") :]
+        elif url.startswith("postgresql://"):
+            url = "postgresql+psycopg://" + url[len("postgresql://") :]
+        return url
 
 
 @lru_cache

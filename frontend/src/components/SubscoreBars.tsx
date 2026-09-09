@@ -1,5 +1,6 @@
 import { scoreColor } from '../scoring'
 import type { ScoreBreakdown, Weights } from '../types'
+import WeightSlider from './WeightSlider'
 
 interface Row {
   key: keyof ScoreBreakdown
@@ -33,30 +34,22 @@ export default function SubscoreBars({ scores, weights, onWeightsChange, editabl
           <div key={row.key}>
             <div className="mb-1.5 flex items-baseline justify-between gap-3">
               <div>
-                <span className="font-medium text-slate-200">{row.label}</span>
-                <span className="ml-2 text-xs text-slate-500">{row.helpText}</span>
+                <span className="font-medium text-neutral-100">{row.label}</span>
+                <span className="ml-2 text-xs text-neutral-500">{row.helpText}</span>
               </div>
               <span className="shrink-0 font-mono text-sm font-semibold" style={{ color: scoreColor(value) }}>
                 {Math.round(value)}
               </span>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-800">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: scoreColor(value) }}
               />
             </div>
             {editable && (
-              <div className="mt-1.5 flex items-center gap-2">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={weight}
-                  onChange={(e) => onWeightsChange({ ...weights, [row.weightKey]: Number(e.target.value) })}
-                  className="h-1 flex-1 cursor-pointer accent-violet-500"
-                />
-                <span className="w-16 shrink-0 text-right text-xs text-slate-500">weight {weight}%</span>
+              <div className="mt-2">
+                <WeightSlider value={weight} onChange={(v) => onWeightsChange({ ...weights, [row.weightKey]: v })} />
               </div>
             )}
           </div>

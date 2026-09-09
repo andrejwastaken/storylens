@@ -63,6 +63,15 @@ class OutletFramingOut(BaseModel):
     tone: str
 
 
+class AiImageSignalOut(BaseModel):
+    """P2: soft, heuristic AI-generated-image likelihood for the article's
+    lead image. Not a forensic verdict - see app/services/fal_client.py."""
+
+    image_url: str
+    likelihood: float
+    reasoning: str
+
+
 class StoryProfileResponse(BaseModel):
     analysis_id: int
     article: ArticleInfo
@@ -77,3 +86,6 @@ class StoryProfileResponse(BaseModel):
     related_sources: list[RelatedSourceOut]
     framing: list[OutletFramingOut]
     independent_source_count: int
+    cached: bool = False
+    ai_image_signal: AiImageSignalOut | None = None
+    audio_summary_available: bool = False

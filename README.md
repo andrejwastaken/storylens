@@ -44,6 +44,14 @@ You need three keys. All have generous free tiers - none require a credit card t
 Put them in `backend/.env` (see step 4). **Never commit `.env` files** - `.gitignore` already
 excludes them.
 
+Two more are **optional** (P2 features - the app works fully without them, those features just
+stay hidden):
+
+| Service | What it's for | Where to get it | Free tier |
+|---|---|---|---|
+| **ElevenLabs** | ~30s spoken audio summary of the Story Profile | https://elevenlabs.io -> Profile -> API Keys | ~10,000 characters/month, no card required |
+| **fal.ai** | Soft "does the lead image look AI-generated?" heuristic | https://fal.ai -> Dashboard -> Keys | ~$1 free credit on signup |
+
 ## 3. Database setup
 
 ```bash
@@ -106,10 +114,12 @@ backend/
     scoring.py                  Deterministic Trust Score engine (plain Python)
     seed_sources.py             Small curated outlet reputation table (signal, not fact)
     crud.py                     Small persistence helpers
-    routers/analyze.py          POST /analyze orchestration endpoint
+    routers/analyze.py          POST /analyze orchestration endpoint + caching + audio-summary
     services/
-      firecrawl_client.py       Article extraction
+      firecrawl_client.py       Article extraction (+ lead image for the AI-image signal)
       exa_client.py              Independent-coverage search
+      elevenlabs_client.py       P2: text -> spoken audio summary
+      fal_client.py               P2: soft AI-generated-image heuristic (vision LLM)
       llm/
         base.py                  Abstract LLMProvider interface (swap providers later)
         openai_provider.py       OpenAI implementation (Structured Outputs)
@@ -121,19 +131,23 @@ backend/
 frontend/
   src/
     App.tsx                     Top-level page: input -> loading -> Story Profile
-    api.ts                      POST /analyze client
+    api.ts                      POST /analyze client + audio-summary URL helper
     scoring.ts                  Client-side mirror of the weighted-sum formula (for live sliders)
     types.ts                    TypeScript types matching backend schemas.py
+    assets/logo.jpg              App logo (also used as favicon)
     components/
       UrlInputForm.tsx
       LoadingSteps.tsx
       TrustScoreGauge.tsx
-      SubscoreBars.tsx           Includes the adjustable weight sliders
+      SubscoreBars.tsx           Sub-score bars + adjustable weight controls
+      WeightSlider.tsx           Custom click/drag/button weight control (not a native <input range>)
       ArticleHeader.tsx          Title/source/author/date + political framing signal
       ReasonsWarnings.tsx
       ClaimsList.tsx
       OutletFraming.tsx
       RelatedSources.tsx
+      AudioSummary.tsx           P2: lazy-loaded ElevenLabs audio player
+      AiImageSignal.tsx          P2: soft AI-image-likelihood card
       StoryProfile.tsx           Composes all of the above
   .env.example
 ```
@@ -160,18 +174,38 @@ anti-sensationalism):
 The LLM never outputs a final Trust Score - only these sub-signals feed a plain-Python weighted
 average.
 
+## P2 features (implemented, optional)
+
+- **Caching by URL** (`routers/analyze.py::_cached_profile`) - re-analyzing the same article
+  within 6 hours reconstructs the Story Profile straight from Postgres instead of re-calling
+  Firecrawl/Exa/OpenAI. No extra API key needed. Custom weight overrides still recompute the
+  Trust Score live even on a cached hit. A "Cached result" badge appears in the UI.
+- **Spoken audio summary** - click "Listen to summary" to hear a ~30s ElevenLabs narration of
+  the Story Profile summary. Generated on first request, then cached to disk
+  (`backend/.audio_cache/`, gitignored). Requires `ELEVENLABS_API_KEY`; the button simply doesn't
+  render if it's not configured.
+- **AI-generated-image heuristic** - a soft 0-100 "does the lead image look AI-generated?" signal
+  using a hosted vision LLM (`fal-ai/any-llm/vision`), always shown with an explicit disclaimer
+  that it's a rough heuristic, not a forensic verdict. Requires `FAL_API_KEY`; the card simply
+  doesn't render if it's not configured or no lead image was found.
+
 ## What's out of scope for this MVP (by design)
 
 No Docker, no database migrations tool, no user accounts, no browser extension, no
-from-scratch ML model, no comprehensive global source-rating database, no sophisticated
-AI-image detection, no claim of definitively "fake" vs "real". See the P2 backlog (ElevenLabs
-audio summary, fal.ai AI-image signal, caching, richer source history) for possible follow-ups
-after the core demo works.
+from-scratch ML model, no comprehensive global source-rating database, no sophisticated/dedicated
+AI-image forensics system, no claim of definitively "fake" vs "real". Richer source history and
+authentication remain unimplemented follow-ups beyond this MVP's scope.
 
-## Deployment (after the demo works locally)
+## Diagrams
 
-- **Frontend**: Netlify - point it at `frontend/`, build command `npm run build`, publish
-  directory `dist`, set `VITE_API_URL` to your deployed backend URL.
-- **Backend**: Render - a Python web service, build command `pip install -r requirements.txt`,
-  start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, plus a managed PostgreSQL
-  instance (Render Postgres or any managed provider) wired up via `DATABASE_URL`.
+See [`docs/architecture.md`](docs/architecture.md), [`docs/database-schema.md`](docs/database-schema.md),
+and [`docs/flow.md`](docs/flow.md) for Mermaid diagrams of the system architecture, the Postgres
+schema, and the full `/analyze` request flow.
+
+## Deployment
+
+Config files (`render.yaml`, `netlify.toml`) are already in the repo root. Full step-by-step
+instructions: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+Short version: backend + Postgres on Render (`render.yaml` blueprint), frontend on Netlify
+(`netlify.toml`), no Docker for either.

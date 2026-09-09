@@ -51,6 +51,12 @@ export interface OutletFramingOut {
   tone: string
 }
 
+export interface AiImageSignalOut {
+  image_url: string
+  likelihood: number
+  reasoning: string
+}
+
 export interface StoryProfile {
   analysis_id: number
   article: ArticleInfo
@@ -65,6 +71,9 @@ export interface StoryProfile {
   related_sources: RelatedSourceOut[]
   framing: OutletFramingOut[]
   independent_source_count: number
+  cached: boolean
+  ai_image_signal: AiImageSignalOut | null
+  audio_summary_available: boolean
 }
 
 export interface Weights {
