@@ -13,6 +13,9 @@
 databases:
   - name: storylens-db
     plan: free
+    region: frankfurt # must match the web service's region below - Render's
+    # internal DNS (used for DATABASE_URL) only resolves between services in
+    # the same region, otherwise you get "Name or service not known" on connect.
     databaseName: storylens
     user: storylens
 

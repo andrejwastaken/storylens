@@ -88,6 +88,18 @@ configuration -> Domain management). Update `CORS_ORIGINS` and
 
 ## Troubleshooting
 
+- **`psycopg.OperationalError: [Errno -2] Name or service not known`** on
+  startup: the web service and the database are in different Render regions.
+  Render's internal DNS (used by the `DATABASE_URL` injected via
+  `fromDatabase`) only resolves between services in the *same* region -
+  across regions the short internal hostname just doesn't resolve.
+  `render.yaml` now pins the database to `region: frankfurt` to match the web
+  service. If you already applied the blueprint before this fix, the
+  database was likely created in Render's default region (not Frankfurt) -
+  region can't be changed after creation, so delete the `storylens-db`
+  database (and the web service, to be safe) in the Render dashboard and
+  re-apply the blueprint from scratch so both are created in Frankfurt
+  together.
 - **`pip` fails with `metadata-generation-failed` on `pydantic-core`** during
   the Render build: this means Render picked a Python version too new for
   `pydantic-core` to have a prebuilt wheel (it's a Rust extension, and the
