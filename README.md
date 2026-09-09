@@ -27,7 +27,8 @@ FastAPI backend (backend/)
 
 See [`docs/architecture.md`](docs/architecture.md), [`docs/database-schema.md`](docs/database-schema.md),
 and [`docs/flow.md`](docs/flow.md) for detailed diagrams of the system, the Postgres schema, and
-the full `/analyze` request flow.
+the full `/analyze` request flow. Presenting this project? See [`docs/PITCH.md`](docs/PITCH.md)
+for a 2-minute pitch script, demo steps, and simplified diagrams.
 
 ## Getting started
 
