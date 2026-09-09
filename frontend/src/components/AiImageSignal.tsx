@@ -2,7 +2,7 @@ import { ImageIcon } from 'lucide-react'
 import type { AiImageSignalOut } from '../types'
 
 /**
- * P2: soft, heuristic "does the lead image look AI-generated?" signal.
+ * Optional feature: soft, heuristic "does the lead image look AI-generated?" signal.
  * Deliberately phrased as a likelihood, never a verdict - see
  * backend/app/services/fal_client.py for why this is an LLM-based estimate
  * rather than a dedicated forensic classifier.

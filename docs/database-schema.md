@@ -1,7 +1,7 @@
 # Database schema
 
 PostgreSQL schema (see `backend/app/models.py`). Tables are created via
-`Base.metadata.create_all` on startup - no migration tool for the MVP.
+`Base.metadata.create_all` on startup - no migration tool.
 
 ```mermaid
 erDiagram
@@ -59,7 +59,7 @@ erDiagram
         float sensationalism_score
         string bias_label
         float bias_confidence
-        float ai_probability "nullable, P2 signal"
+        float ai_probability "nullable, optional signal"
         json weights_json
         text summary
         json warnings_json
@@ -94,7 +94,7 @@ erDiagram
   analysis.
 - `articles.content_hash` (sha256 of extracted markdown) is used both to
   detect near-duplicate wire-service content and as the cache key for
-  skipping redundant API calls on repeat analyses of the same URL (P2).
+  skipping redundant API calls on repeat analyses of the same URL.
 - `evidence` rows are only created for articles the LLM actually cited as
   supporting or contradicting a specific claim - not every related article
   gets an evidence row for every claim.

@@ -40,7 +40,7 @@ def _ai_image_signal_from_analysis(db_analysis: models.Analysis) -> schemas.AiIm
 
 
 def _cached_profile(db: Session, url: str, weights: dict[str, float] | None) -> schemas.StoryProfileResponse | None:
-    """P2: if we already analyzed this exact URL recently, skip Firecrawl/Exa/
+    """Optional optimization: if we already analyzed this exact URL recently, skip Firecrawl/Exa/
     LLM entirely and reconstruct the Story Profile from Postgres. Saves API
     cost/time on repeat demo runs of the same article."""
     article = (
@@ -263,7 +263,7 @@ def analyze(req: schemas.AnalyzeRequest, db: Session = Depends(get_db)) -> schem
     # 2. LLM pass 1: claims + language signals.
     analysis = llm.analyze_article(article.title, article.url, primary["markdown"])
 
-    # 2b. P2 (optional, best-effort): soft AI-generated-image heuristic on the
+    # Optional, best-effort: soft AI-generated-image heuristic on the
     # article's lead image, via fal.ai. Never blocks/fails the main analysis.
     ai_image_signal: schemas.AiImageSignalOut | None = None
     if primary.get("image_url") and fal_client.is_configured():
@@ -482,7 +482,7 @@ def analyze(req: schemas.AnalyzeRequest, db: Session = Depends(get_db)) -> schem
 
 @router.get("/analyze/{analysis_id}/audio-summary")
 def audio_summary(analysis_id: int, db: Session = Depends(get_db)) -> Response:
-    """P2: ~30s spoken summary of a Story Profile via ElevenLabs TTS.
+    """Optional feature: ~30s spoken summary of a Story Profile via ElevenLabs TTS.
 
     Generated on first request, then cached to disk keyed by analysis id +
     a hash of the summary text, so repeat plays (and re-demoing the same

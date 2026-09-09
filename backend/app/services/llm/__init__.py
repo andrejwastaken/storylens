@@ -17,6 +17,6 @@ def get_llm_provider() -> LLMProvider:
 
         return OpenAIProvider()
     raise ValueError(
-        f"Unknown LLM_PROVIDER '{settings.llm_provider}'. Only 'openai' is supported in the MVP "
-        "(Ollama support can be added later behind the same LLMProvider interface)."
+        f"Unknown LLM_PROVIDER '{settings.llm_provider}'. Only 'openai' is currently supported "
+        "(other providers can be added behind the same LLMProvider interface)."
     )

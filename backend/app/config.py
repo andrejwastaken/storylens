@@ -31,12 +31,12 @@ class Settings(BaseSettings):
     # How many related sources to fetch full text for and compare against
     max_related_sources: int = 5
 
-    # ElevenLabs (P2: spoken audio summary) - https://elevenlabs.io -> Profile -> API Keys
+    # ElevenLabs (optional: spoken audio summary) - https://elevenlabs.io -> Profile -> API Keys
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = "JBFqnCBsd6RMkjVDRZzb"  # premade "George" voice, available on free tier
     elevenlabs_model_id: str = "eleven_turbo_v2_5"
 
-    # fal.ai (P2: soft AI-generated-image heuristic on the article's lead image)
+    # fal.ai (optional: soft AI-generated-image heuristic on the article's lead image)
     # fal.ai has no dedicated authenticity-classifier model, so this uses a
     # hosted vision-language model (fal-ai/any-llm/vision) with a targeted
     # prompt. It is a soft heuristic signal, never a certainty claim.

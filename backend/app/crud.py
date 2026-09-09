@@ -1,5 +1,5 @@
-"""Small persistence helpers shared by routers. Kept intentionally thin for
-the hackathon MVP - no repository/service-layer abstraction.
+"""Small persistence helpers shared by routers. Kept intentionally thin -
+no repository/service-layer abstraction.
 """
 
 from __future__ import annotations

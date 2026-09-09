@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM models. MVP uses Base.metadata.create_all (no migrations)."""
+"""SQLAlchemy ORM models. Tables are created via Base.metadata.create_all (no migrations)."""
 
 from __future__ import annotations
 
@@ -102,7 +102,7 @@ class Analysis(Base):
     bias_label: Mapped[str] = mapped_column(String(32), default="unknown")
     bias_confidence: Mapped[float] = mapped_column(Float, default=0.0)
     bias_explanation: Mapped[str] = mapped_column(Text, default="")
-    # P2: soft heuristic signal (0-100), null when unavailable/not configured.
+    # Optional signal (soft heuristic) (0-100), null when unavailable/not configured.
     ai_probability: Mapped[float | None] = mapped_column(Float, nullable=True)
     ai_image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     ai_image_reasoning: Mapped[str] = mapped_column(Text, default="")

@@ -4,7 +4,7 @@ Docs: https://elevenlabs.io/docs/api-reference/text-to-speech/convert
 Get a free API key at https://elevenlabs.io -> Profile -> API Keys
 (free tier: ~10,000 characters/month, no card required).
 
-P2 feature - purely additive. If ELEVENLABS_API_KEY is unset, the caller
+Optional integration - purely additive. If ELEVENLABS_API_KEY is unset, the caller
 should treat this as unavailable rather than failing the whole analysis.
 """
 

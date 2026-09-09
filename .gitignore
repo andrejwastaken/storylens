@@ -14,7 +14,7 @@ __pycache__/
 frontend/node_modules/
 frontend/dist/
 
-# Generated audio summaries (P2, regenerable, may contain paid TTS output)
+# Generated audio summaries (regenerable, may contain paid TTS output)
 backend/.audio_cache/
 
 # OS

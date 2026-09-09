@@ -1,6 +1,5 @@
 """Prompt text for the two LLM passes. Kept as plain functions returning
-strings so they're easy to tweak during the hackathon without touching
-provider code.
+strings so they're easy to tweak without touching provider code.
 """
 
 CLAIM_EXTRACTION_SYSTEM = """You are a careful, neutral news analyst helping build an evidence-based \

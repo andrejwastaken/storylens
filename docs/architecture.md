@@ -56,4 +56,4 @@ graph TB
   OpenAI implementation can be swapped for another hosted provider (or a local
   Ollama model later) without touching the rest of the app.
 - **No Docker.** Backend runs directly via `uvicorn`, frontend via `npm run dev`
-  / static build. Kept deliberately simple for a few-hour hackathon.
+  / static build. Kept deliberately simple.

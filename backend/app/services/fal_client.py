@@ -13,7 +13,7 @@ AI-image-detection system).
 Docs: https://fal.ai/models/fal-ai/any-llm/vision
 Get a free API key at https://fal.ai -> Dashboard -> Keys ($1 free credit).
 
-P2 feature - purely additive. If FAL_API_KEY is unset, the caller should
+Optional integration - purely additive. If FAL_API_KEY is unset, the caller should
 treat this as unavailable rather than failing the whole analysis.
 """
 

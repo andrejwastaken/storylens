@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { analyzeArticle } from './api'
-import logo from './assets/logo.jpg'
+import logo from './assets/logo.svg'
 import LoadingSteps from './components/LoadingSteps'
 import StoryProfile from './components/StoryProfile'
 import UrlInputForm from './components/UrlInputForm'
@@ -32,11 +32,8 @@ function App() {
     <div className="min-h-screen bg-black">
       <div className="mx-auto max-w-4xl px-4 py-10 sm:py-16">
         <header className="mb-10 text-center">
-          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-neutral-800 px-3 py-1 text-xs font-medium text-neutral-500">
-            Built at the Cursor Skopje Hackathon
-          </div>
           <div className="mb-5 flex items-center justify-center gap-3">
-            <img src={logo} alt="StoryLens logo" className="h-10 w-10 rounded-lg object-cover" />
+            <img src={logo} alt="StoryLens logo" className="h-10 w-10 object-contain" />
             <h1 className="text-4xl font-semibold text-white sm:text-5xl">
               Story<span className="text-blue-500">Lens</span>
             </h1>

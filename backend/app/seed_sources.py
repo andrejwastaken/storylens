@@ -1,8 +1,8 @@
 """Small curated table of known outlet reputations, used as a *prior signal only*.
 
-This is intentionally NOT a comprehensive source-rating database (out of scope for the
-MVP). Unknown domains fall back to a neutral default. These numbers are directional
-signals for a demo, not objective truth about any outlet.
+This is intentionally NOT a comprehensive source-rating database (out of scope for this
+project). Unknown domains fall back to a neutral default. These numbers are directional
+signals, not objective truth about any outlet.
 
 reliability_score: 0-100, rough editorial/fact-checking track record proxy.
 bias_score: -1.0 (left-leaning) .. 0.0 (center) .. 1.0 (right-leaning).

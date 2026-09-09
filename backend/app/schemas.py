@@ -64,7 +64,7 @@ class OutletFramingOut(BaseModel):
 
 
 class AiImageSignalOut(BaseModel):
-    """P2: soft, heuristic AI-generated-image likelihood for the article's
+    """Optional signal: soft, heuristic AI-generated-image likelihood for the article's
     lead image. Not a forensic verdict - see app/services/fal_client.py."""
 
     image_url: str

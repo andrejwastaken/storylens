@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { audioSummaryUrl } from '../api'
 
 /**
- * P2: ~30s spoken summary via ElevenLabs. Lazily loaded - nothing is
+ * Optional feature: ~30s spoken summary via ElevenLabs. Lazily loaded - nothing is
  * requested from the backend until the user clicks Listen. Fails silently
  * (hides itself) if audio summaries aren't configured on the backend.
  */

@@ -22,7 +22,7 @@ def get_db():
 
 
 def init_db() -> None:
-    """Create all tables. MVP uses create_all instead of migrations for speed."""
+    """Create all tables directly via create_all (no migration tool)."""
     from app import models  # noqa: F401  (ensure models are registered)
 
     Base.metadata.create_all(bind=engine)
